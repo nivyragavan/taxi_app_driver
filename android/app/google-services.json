@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "938844225475",
+    "project_id": "driverapp-e4d5c",
+    "storage_bucket": "driverapp-e4d5c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:938844225475:android:156bd109a1f3b7966d8776",
+        "android_client_info": {
+          "package_name": "com.example.taxi_driver_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "938844225475-d069tont5c0u4bih4slrsko6ou1iljhm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.taxi_driver_app",
+            "certificate_hash": "d6a8cd270732746d9f3e3ad0a0151125cf1a49f7"
+          }
+        },
+        {
+          "client_id": "938844225475-n8et9gtd06a8rqmahmokr51qs8f37ou7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPUbbHh4Q85s0og39kTxBbVTMNJUQFaA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "938844225475-n8et9gtd06a8rqmahmokr51qs8f37ou7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
