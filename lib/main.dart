@@ -45,7 +45,7 @@ void main() async {
       child: ChangeNotifierProvider(
         create: (context) => AppInfo(),
         child: GetMaterialApp(
-          title: 'Drivers App',
+          title: 'Taxi Drivers App',
           theme: ThemeData(
             primarySwatch: Colors.blue,
           ),
