@@ -1,8 +1,6 @@
 class APIConstants {
-  static String baseUrl = 'http://3.110.225.148:9200/api/mobile/driver/';
+  static String baseUrl = 'https://taxiapis.viswatechnologysolutions.com/v1/api/mobile/driver/';
 
-  static String register = 'registerDriver';
-  static String carDocuments = 'carDocuments';
-  static String driverDocuments = 'driverDocuments';
-  static String ownerDocuments = 'ownerDocument';
+  static String login = 'driverLogin';
+  static String profileView = 'driverProfile';
 }

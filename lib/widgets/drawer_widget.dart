@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:taxi_driver_app/view/profile_screen.dart';
 
 import '../mainScreens/main_screen.dart';
+import '../models/driver_profile_model.dart';
+import '../service/apiservice.dart';
 import '../view/authentication/login_screen.dart';
 import '../view/notification_screen.dart';
 import '../view/reports_screen.dart';
@@ -14,8 +16,35 @@ import '../view/trip_history_screen.dart';
 import '../view/wallet_screen.dart';
 import 'menu_item.dart';
 
-class DrawerWidget extends StatelessWidget {
+class DrawerWidget extends StatefulWidget {
   const DrawerWidget({Key? key}) : super(key: key);
+
+  @override
+  State<DrawerWidget> createState() => _DrawerWidgetState();
+}
+
+class _DrawerWidgetState extends State<DrawerWidget> {
+
+  DriverProfileModel? driverProfileModel;
+  var isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
+  }
+
+  void getData() async {
+    driverProfileModel = await ApiService().driverProfile();
+    if(driverProfileModel != null){
+      setState(() {
+        isLoading = true;
+      });
+      setState(() {
+        driverProfileModel = driverProfileModel;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,20 +64,22 @@ class DrawerWidget extends StatelessWidget {
                   onTap: () {
                     Get.to(ProfileScreen());
                   },
-                  child: Row(
+                  child:isLoading == false ? Container() : Row(
                     children: [
                       const CircleAvatar(
                         radius: 30,
                       ),
                       const SizedBox(width: 10),
                       Column(
-                        children: const [
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:  [
                           Text(
-                            "name",
+                            "${driverProfileModel!.body!.name}",
                             style: TextStyle(fontSize: 20),
                           ),
+                          SizedBox(height: 10,),
                           Text(
-                            "number",
+                            "${driverProfileModel!.body!.contact}",
                             style: TextStyle(fontSize: 17),
                           ),
                         ],

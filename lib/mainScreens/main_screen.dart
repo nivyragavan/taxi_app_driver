@@ -1,20 +1,13 @@
 import 'dart:async';
-import 'package:badges/badges.dart';
-import 'package:firebase_database/firebase_database.dart';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_geofire/flutter_geofire.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../assistants/assistant_methods.dart';
-import '../assistants/black_theme_google_map.dart';
 import '../constants/colors.dart';
-import '../global/global.dart';
-import '../push_notifications/push_notification_system.dart';
 import '../view/notification_screen.dart';
 import '../widgets/drawer_widget.dart';
+import 'package:badges/badges.dart' as badges;
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -24,188 +17,59 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  GoogleMapController? newGoogleMapController;
-  final Completer<GoogleMapController> _controllerGoogleMap = Completer();
 
-  static const CameraPosition _kGooglePlex = CameraPosition(
-    target: LatLng(37.42796133580664, -122.085749655962),
-    zoom: 14.4746,
-  );
+  Completer<GoogleMapController> googleMapCompleter = Completer();
+  GoogleMapController? googleMapController;
 
+  Position? currentPosition;
   var geoLocator = Geolocator();
-  LocationPermission? _locationPermission;
 
-  String statusText = "Now Offline";
-  Color buttonColor = Colors.grey;
-  bool isDriverActive = false;
-
-  checkIfLocationPermissionAllowed() async {
-    _locationPermission = await Geolocator.requestPermission();
-
-    if (_locationPermission == LocationPermission.denied) {
-      _locationPermission = await Geolocator.requestPermission();
+  Future<Position?> locatePosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location service disabled.');
     }
-  }
-
-  locateDriverPosition() async {
-    Position cPosition = await Geolocator.getCurrentPosition(
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission == await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permission');
+    }
+    Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
-    driverCurrentPosition = cPosition;
+    currentPosition = position;
 
-    LatLng latLngPosition = LatLng(
-        driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+    LatLng latLngPosition = LatLng(position.latitude, position.longitude);
 
     CameraPosition cameraPosition =
-        CameraPosition(target: latLngPosition, zoom: 14);
-
-    newGoogleMapController!
+    CameraPosition(target: latLngPosition, zoom: 20);
+    googleMapController!
         .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
-    String humanReadableAddress =
-        await AssistantMethods.searchAddressForGeographicCoOrdinates(
-            driverCurrentPosition!, context);
-    print("this is your address = " + humanReadableAddress);
+    // String address =
+    // await ServiceMethods().searchCoordinateAddress(context, position);
+    // print("This is your address " + address);
+
+    return null;
   }
 
-  readCurrentDriverInformation() async {
-    currentFirebaseUser = fAuth.currentUser;
-
-    await FirebaseDatabase.instance
-        .reference()
-        .child("drivers")
-        .child(currentFirebaseUser!.uid)
-        .once()
-        .then((DatabaseEvent snap) {
-      if (snap.snapshot != null) {
-        onlineDriverData.id = (snap.snapshot as Map)["id"];
-        onlineDriverData.name = (snap.snapshot as Map)["name"];
-        onlineDriverData.phone = (snap.snapshot as Map)["phone"];
-        onlineDriverData.email = (snap.snapshot as Map)["email"];
-        onlineDriverData.car_color =
-            (snap.snapshot as Map)["car_details"]["car_color"];
-        onlineDriverData.car_model =
-            (snap.snapshot as Map)["car_details"]["car_model"];
-        onlineDriverData.car_number =
-            (snap.snapshot as Map)["car_details"]["car_number"];
-
-        driverVehicleType = (snap.snapshot as Map)["car_details"]["type"];
-
-        print("Car Details :: ");
-        print(onlineDriverData.car_color);
-        print(onlineDriverData.car_model);
-        print(onlineDriverData.car_number);
-      }
-    });
-
-    PushNotificationSystem pushNotificationSystem = PushNotificationSystem();
-    pushNotificationSystem.initializeCloudMessaging(context);
-    pushNotificationSystem.generateAndGetToken();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    checkIfLocationPermissionAllowed();
-    readCurrentDriverInformation();
-  }
+  final CameraPosition currentLocation =
+  const CameraPosition(target: LatLng(11.0168, 76.9558), zoom: 15);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: buildAppBar(),
       drawer: const DrawerWidget(),
-      extendBodyBehindAppBar: true,
+      // extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          GoogleMap(
-            mapType: MapType.normal,
-            myLocationEnabled: true,
-            initialCameraPosition: _kGooglePlex,
-            onMapCreated: (GoogleMapController controller) {
-              _controllerGoogleMap.complete(controller);
-              newGoogleMapController = controller;
-
-              //black theme google map
-              blackThemeGoogleMap(newGoogleMapController);
-
-              locateDriverPosition();
-            },
-          ),
-
-          //ui for online offline driver
-          statusText != "Now Online"
-              ? Container(
-                  height: MediaQuery.of(context).size.height,
-                  width: double.infinity,
-                  color: Colors.black87,
-                )
-              : Container(),
-
-          //button for online offline driver
-          Positioned(
-            top: statusText != "Now Online"
-                ? MediaQuery.of(context).size.height * 0.46
-                : 25,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (isDriverActive != true) //offline
-                    {
-                      driverIsOnlineNow();
-                      updateDriversLocationAtRealTime();
-
-                      setState(() {
-                        statusText = "Now Online";
-                        isDriverActive = true;
-                        buttonColor = Colors.transparent;
-                      });
-
-                      //display Toast
-                      Fluttertoast.showToast(msg: "you are Online Now");
-                    } else //online
-                    {
-                      driverIsOfflineNow();
-
-                      setState(() {
-                        statusText = "Now Offline";
-                        isDriverActive = false;
-                        buttonColor = Colors.grey;
-                      });
-
-                      //display Toast
-                      Fluttertoast.showToast(msg: "you are Offline Now");
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    primary: buttonColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
-                    ),
-                  ),
-                  child: statusText != "Now Online"
-                      ? Text(
-                          statusText,
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.phonelink_ring,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                ),
-              ],
-            ),
-          ),
+          buildMap()
         ],
       ),
     );
@@ -213,16 +77,22 @@ class _MainScreenState extends State<MainScreen> {
 
   buildAppBar() {
     return AppBar(
-      title: Text(''),
+      title: TextButton(onPressed: (){}, child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Online Now',style: TextStyle(fontSize: 20),),
+          Icon(Icons.phone_android_outlined)
+        ],
+      )),
       centerTitle: true,
-      backgroundColor: Colors.transparent,
-      //iconTheme: const IconThemeData(color: Colors.black),
+      backgroundColor: Colors.white,
+      iconTheme: const IconThemeData(color: Colors.black),
       elevation: 0,
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 10),
-          child: Badge(
-            position: BadgePosition.topEnd(top: 2, end: 5),
+          child: badges.Badge(
+            position: badges.BadgePosition.topEnd(top: 2, end: 5),
             badgeContent: const Text(
               '3',
               style: TextStyle(
@@ -230,12 +100,14 @@ class _MainScreenState extends State<MainScreen> {
                   color: Colors.white,
                   fontWeight: FontWeight.bold),
             ),
-            badgeColor: blueGreen,
+            badgeStyle: badges.BadgeStyle(
+              badgeColor: blueGreen,
+            ),
             child: IconButton(
               icon: const Icon(
                 Icons.notification_important_outlined,
                 size: 30,
-                color: Colors.white,
+                color: Colors.black,
               ),
               onPressed: () {
                 Get.to(const NotificationScreen());
@@ -247,61 +119,22 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  driverIsOnlineNow() async {
-    Position pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+  buildMap() {
+    return GoogleMap(
+      mapType: MapType.normal,
+      myLocationButtonEnabled: true,
+      initialCameraPosition: currentLocation,
+      myLocationEnabled: true,
+      // zoomGesturesEnabled: true,
+      // zoomControlsEnabled: true,
+      // polylines: polylineSet,
+      // markers: markers,
+      // circles: circles,
+      onMapCreated: (GoogleMapController controller) {
+        googleMapCompleter.complete(controller);
+        googleMapController = controller;
+        locatePosition();
+      },
     );
-    driverCurrentPosition = pos;
-
-    Geofire.initialize("activeDrivers");
-
-    Geofire.setLocation(currentFirebaseUser!.uid,
-        driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
-
-    DatabaseReference ref = FirebaseDatabase.instance
-        .reference()
-        .child("drivers")
-        .child(currentFirebaseUser!.uid)
-        .child("newRideStatus");
-
-    ref.set("idle"); //searching for ride request
-    ref.onValue.listen((event) {});
-  }
-
-  updateDriversLocationAtRealTime() {
-    streamSubscriptionPosition =
-        Geolocator.getPositionStream().listen((Position position) {
-      driverCurrentPosition = position;
-
-      if (isDriverActive == true) {
-        Geofire.setLocation(currentFirebaseUser!.uid,
-            driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
-      }
-
-      LatLng latLng = LatLng(
-        driverCurrentPosition!.latitude,
-        driverCurrentPosition!.longitude,
-      );
-
-      newGoogleMapController!.animateCamera(CameraUpdate.newLatLng(latLng));
-    });
-  }
-
-  driverIsOfflineNow() {
-    Geofire.removeLocation(currentFirebaseUser!.uid);
-
-    DatabaseReference? ref = FirebaseDatabase.instance
-        .reference()
-        .child("drivers")
-        .child(currentFirebaseUser!.uid)
-        .child("newRideStatus");
-    ref.onDisconnect();
-    ref.remove();
-    ref = null;
-
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      //SystemChannels.platform.invokeMethod("SystemNavigator.pop");
-      SystemNavigator.pop();
-    });
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../constants/colors.dart';
 import '../mainScreens/main_screen.dart';
 import '../models/package_info.dart';
@@ -49,7 +48,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
             ...package.map(buildSinglePackageCheckBox).toList(),
             ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    primary: black.withOpacity(0.2), elevation: 0),
+                    backgroundColor: black.withOpacity(0.2), elevation: 0),
                 onPressed: () {
                   Get.to(MainScreen());
                 },
